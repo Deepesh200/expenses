@@ -29,6 +29,13 @@
             margin-bottom: 20px;
         }
 
+        .user-name {
+            text-align: center;
+            font-size: 1.2em;
+            color: #555;
+            margin-bottom: 20px;
+        }
+
         form {
             display: flex;
             flex-direction: column;
@@ -140,6 +147,25 @@
         .switch-form:hover {
             text-decoration: underline;
         }
+
+        .logout-button {
+            text-align: right;
+            margin-top: 10px;
+        }
+
+        .logout-button button {
+            padding: 10px 20px;
+            border: none;
+            background: #dc3545;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .logout-button button:hover {
+            background: #c82333;
+        }
     </style>
 </head>
 <body>
@@ -149,6 +175,7 @@
         <div class="signup-form">
             <h2>Sign Up</h2>
             <form id="signup-form">
+                <input type="text" id="signup-name" placeholder="Name" required>
                 <input type="email" id="signup-email" placeholder="Email" required>
                 <input type="password" id="signup-password" placeholder="Password" required>
                 <button type="submit">Sign Up</button>
@@ -177,6 +204,10 @@
         </div>
 
         <div class="expense-form">
+            <div class="logout-button">
+                <button onclick="logout()">Logout</button>
+            </div>
+            <div class="user-name" id="user-name"></div>
             <form id="expense-form">
                 <input type="text" id="expense-name" placeholder="Expense Name" required>
                 <input type="number" id="expense-amount" placeholder="Amount" required>
@@ -188,6 +219,7 @@
                         <tr>
                             <th>Expense Name</th>
                             <th>Amount</th>
+                            <th>Date</th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -218,6 +250,7 @@
 
         function signup(e) {
             e.preventDefault();
+            const name = document.getElementById('signup-name').value;
             const email = document.getElementById('signup-email').value;
             const password = document.getElementById('signup-password').value;
 
@@ -226,7 +259,7 @@
                 return;
             }
 
-            users[email] = { password: password, expenses: [] };
+            users[email] = { name: name, password: password, expenses: [] };
             localStorage.setItem('users', JSON.stringify(users));
             currentUser = email;
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
@@ -256,9 +289,10 @@
 
             const name = document.getElementById('expense-name').value;
             const amount = parseFloat(document.getElementById('expense-amount').value);
+            const date = new Date().toLocaleDateString();
 
             if (name && amount && currentUser) {
-                const expense = { name, amount };
+                const expense = { name, amount, date };
                 users[currentUser].expenses.push(expense);
                 localStorage.setItem('users', JSON.stringify(users));
                 updateExpenseList();
@@ -276,8 +310,9 @@
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${expense.name}</td>
-                        <td>₹${expense.amount.toFixed(2)}</td>
-                        <td><button onclick="removeExpense(${index})">Delete</button></td>
+                        <td>${expense.amount.toFixed(2)}</td>
+                        <td>${expense.date}</td>
+                        <td><button onclick="removeExpense(${index})">Remove</button></td>
                     `;
                     expenseList.appendChild(row);
                 });
@@ -285,10 +320,9 @@
         }
 
         function updateTotalAmount() {
-            if (currentUser) {
-                const totalAmount = users[currentUser].expenses.reduce((total, expense) => total + expense.amount, 0);
-                document.getElementById('total-amount').textContent = totalAmount.toFixed(2);
-            }
+            const totalAmount = document.getElementById('total-amount');
+            const total = currentUser ? users[currentUser].expenses.reduce((acc, expense) => acc + expense.amount, 0) : 0;
+            totalAmount.textContent = total.toFixed(2);
         }
 
         function removeExpense(index) {
@@ -321,10 +355,17 @@
             }
         }
 
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            updateUI();
+        }
+
         function updateUI() {
             if (currentUser) {
                 document.body.classList.add('logged-in');
                 document.body.classList.remove('logged-out');
+                document.getElementById('user-name').textContent = `Welcome, ${users[currentUser].name}`;
             } else {
                 document.body.classList.add('logged-out');
                 document.body.classList.remove('logged-in');
