@@ -110,11 +110,11 @@
             background-color: #f1f1f1;
         }
 
-        .login-form, .signup-form, .expense-form {
+        .login-form, .signup-form, .expense-form, .forgot-password-form {
             display: none;
         }
 
-        .logged-in .login-form, .logged-in .signup-form {
+        .logged-in .login-form, .logged-in .signup-form, .logged-in .forgot-password-form {
             display: none;
         }
 
@@ -126,7 +126,7 @@
             display: none;
         }
 
-        .logged-out .login-form, .logged-out .signup-form {
+        .logged-out .login-form, .logged-out .signup-form, .logged-out .forgot-password-form {
             display: block;
         }
 
@@ -164,6 +164,16 @@
                 <button type="submit">Login</button>
             </form>
             <div class="switch-form" onclick="switchToSignup()">Don't have an account? Sign Up</div>
+            <div class="switch-form" onclick="switchToForgotPassword()">Forgot Password?</div>
+        </div>
+
+        <div class="forgot-password-form">
+            <h2>Forgot Password</h2>
+            <form id="forgot-password-form">
+                <input type="email" id="forgot-email" placeholder="Email" required>
+                <button type="submit">Reset Password</button>
+            </form>
+            <div class="switch-form" onclick="switchToLogin()">Back to Login</div>
         </div>
 
         <div class="expense-form">
@@ -204,6 +214,7 @@
         document.getElementById('signup-form').addEventListener('submit', signup);
         document.getElementById('login-form').addEventListener('submit', login);
         document.getElementById('expense-form').addEventListener('submit', addExpense);
+        document.getElementById('forgot-password-form').addEventListener('submit', resetPassword);
 
         function signup(e) {
             e.preventDefault();
@@ -286,14 +297,21 @@
             }
         }
 
-        function switchToLogin() {
-            document.querySelector('.signup-form').style.display = 'none';
-            document.querySelector('.login-form').style.display = 'block';
-        }
+        function resetPassword(e) {
+            e.preventDefault();
+            const email = document.getElementById('forgot-email').value;
 
-        function switchToSignup() {
-            document.querySelector('.login-form').style.display = 'none';
-            document.querySelector('.signup-form').style.display = 'block';
+            if (users[email]) {
+                const newPassword = prompt('Enter new password:');
+                if (newPassword) {
+                    users[email].password = newPassword;
+                    localStorage.setItem('users', JSON.stringify(users));
+                    alert('Password reset successfully! Please login.');
+                    switchToLogin();
+                }
+            } else {
+                alert('Email not registered!');
+            }
         }
 
         function updateUI() {
@@ -304,6 +322,24 @@
                 document.body.classList.add('logged-out');
                 document.body.classList.remove('logged-in');
             }
+        }
+
+        function switchToSignup() {
+            document.querySelector('.signup-form').style.display = 'block';
+            document.querySelector('.login-form').style.display = 'none';
+            document.querySelector('.forgot-password-form').style.display = 'none';
+        }
+
+        function switchToLogin() {
+            document.querySelector('.signup-form').style.display = 'none';
+            document.querySelector('.login-form').style.display = 'block';
+            document.querySelector('.forgot-password-form').style.display = 'none';
+        }
+
+        function switchToForgotPassword() {
+            document.querySelector('.signup-form').style.display = 'none';
+            document.querySelector('.login-form').style.display = 'none';
+            document.querySelector('.forgot-password-form').style.display = 'block';
         }
     </script>
 </body>
