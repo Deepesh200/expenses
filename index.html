@@ -228,8 +228,11 @@
 
             users[email] = { password: password, expenses: [] };
             localStorage.setItem('users', JSON.stringify(users));
-            alert('User registered successfully! Please login.');
-            switchToLogin();
+            currentUser = email;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            updateUI();
+            updateExpenseList();
+            updateTotalAmount();
         }
 
         function login(e) {
@@ -306,8 +309,12 @@
                 if (newPassword) {
                     users[email].password = newPassword;
                     localStorage.setItem('users', JSON.stringify(users));
-                    alert('Password reset successfully! Please login.');
-                    switchToLogin();
+                    alert('Password reset successfully!');
+                    currentUser = email;
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    updateUI();
+                    updateExpenseList();
+                    updateTotalAmount();
                 }
             } else {
                 alert('Email not registered!');
