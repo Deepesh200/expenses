@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,7 +24,8 @@
             border-radius: 10px;
         }
 
-        h1, h2 {
+        h1,
+        h2 {
             text-align: center;
             color: #333;
             margin-bottom: 20px;
@@ -77,7 +79,8 @@
             border-collapse: collapse;
         }
 
-        th, td {
+        th,
+        td {
             padding: 10px;
             border: 1px solid #ccc;
             text-align: left;
@@ -109,6 +112,13 @@
             color: #333;
         }
 
+        .budget {
+            text-align: right;
+            margin-top: 10px;
+            font-size: 1em;
+            color: #333;
+        }
+
         tr {
             transition: all 0.3s ease-in-out;
         }
@@ -117,23 +127,33 @@
             background-color: #f1f1f1;
         }
 
-        .login-form, .signup-form, .expense-form, .forgot-password-form {
+        .login-form,
+        .signup-form,
+        .expense-form,
+        .forgot-password-form,
+        .profile-form {
             display: none;
         }
 
-        .logged-in .login-form, .logged-in .signup-form, .logged-in .forgot-password-form {
+        .logged-in .login-form,
+        .logged-in .signup-form,
+        .logged-in .forgot-password-form {
             display: none;
         }
 
-        .logged-in .expense-form {
+        .logged-in .expense-form,
+        .logged-in .profile-form {
             display: block;
         }
 
-        .logged-out .expense-form {
+        .logged-out .expense-form,
+        .logged-out .profile-form {
             display: none;
         }
 
-        .logged-out .login-form, .logged-out .signup-form, .logged-out .forgot-password-form {
+        .logged-out .login-form,
+        .logged-out .signup-form,
+        .logged-out .forgot-password-form {
             display: block;
         }
 
@@ -166,8 +186,28 @@
         .logout-button button:hover {
             background: #c82333;
         }
+
+        .download-button {
+            text-align: right;
+            margin-top: 10px;
+        }
+
+        .download-button button {
+            padding: 10px 20px;
+            border: none;
+            background: #28a745;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .download-button button:hover {
+            background: #218838;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>Expense Tracker</h1>
@@ -203,6 +243,15 @@
             <div class="switch-form" onclick="switchToLogin()">Back to Login</div>
         </div>
 
+        <div class="profile-form">
+            <h2>Profile</h2>
+            <form id="profile-form">
+                <input type="text" id="profile-name" placeholder="Name" required>
+                <input type="email" id="profile-email" placeholder="Email" required>
+                <button type="submit">Update Profile</button>
+            </form>
+        </div>
+
         <div class="expense-form">
             <div class="logout-button">
                 <button onclick="logout()">Logout</button>
@@ -213,6 +262,9 @@
                 <input type="number" id="expense-amount" placeholder="Amount" required>
                 <button type="submit">Add Expense</button>
             </form>
+            <div class="download-button">
+                <button onclick="downloadPDF()">Download PDF</button>
+            </div>
             <div class="expense-table">
                 <table>
                     <thead>
@@ -228,9 +280,17 @@
                 <div class="total-amount">
                     <strong>Total:</strong> ₹<span id="total-amount">0</span>
                 </div>
+                <div class="budget">
+                    <strong>Monthly Budget:</strong> ₹<span id="monthly-budget">0</span>
+                </div>
             </div>
+            <form id="budget-form">
+                <input type="number" id="budget-amount" placeholder="Monthly Budget" required>
+                <button type="submit">Set Budget</button>
+            </form>
         </div>
     </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
     <script>
         let users = JSON.parse(localStorage.getItem('users')) || {};
         let currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -240,6 +300,7 @@
             if (currentUser) {
                 updateExpenseList();
                 updateTotalAmount();
+                updateBudget();
             }
         });
 
@@ -247,6 +308,8 @@
         document.getElementById('login-form').addEventListener('submit', login);
         document.getElementById('expense-form').addEventListener('submit', addExpense);
         document.getElementById('forgot-password-form').addEventListener('submit', resetPassword);
+        document.getElementById('profile-form').addEventListener('submit', updateProfile);
+        document.getElementById('budget-form').addEventListener('submit', setBudget);
 
         function signup(e) {
             e.preventDefault();
@@ -259,13 +322,14 @@
                 return;
             }
 
-            users[email] = { name: name, password: password, expenses: [] };
+            users[email] = { name: name, password: password, expenses: [], budget: 0 };
             localStorage.setItem('users', JSON.stringify(users));
             currentUser = email;
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             updateUI();
             updateExpenseList();
             updateTotalAmount();
+            updateBudget();
         }
 
         function login(e) {
@@ -279,6 +343,8 @@
                 updateUI();
                 updateExpenseList();
                 updateTotalAmount();
+                updateBudget();
+                loadProfile();
             } else {
                 alert('Invalid email or password!');
             }
@@ -292,11 +358,19 @@
             const date = new Date().toLocaleDateString();
 
             if (name && amount && currentUser) {
+                const currentBudget = users[currentUser].budget;
+                if (amount > currentBudget) {
+                    alert('Expense amount exceeds your budget!');
+                    return;
+                }
+
                 const expense = { name, amount, date };
                 users[currentUser].expenses.push(expense);
+                users[currentUser].budget -= amount; // Deduct the expense amount from the budget
                 localStorage.setItem('users', JSON.stringify(users));
                 updateExpenseList();
                 updateTotalAmount();
+                updateBudget();
                 document.getElementById('expense-form').reset();
             }
         }
@@ -325,12 +399,32 @@
             totalAmount.textContent = total.toFixed(2);
         }
 
+        function updateBudget() {
+            const budgetElement = document.getElementById('monthly-budget');
+            const budget = currentUser ? users[currentUser].budget : 0;
+            budgetElement.textContent = budget.toFixed(2);
+        }
+
+        function setBudget(e) {
+            e.preventDefault();
+            const budgetAmount = parseFloat(document.getElementById('budget-amount').value);
+
+            if (budgetAmount && currentUser) {
+                users[currentUser].budget = budgetAmount;
+                localStorage.setItem('users', JSON.stringify(users));
+                updateBudget();
+            }
+        }
+
         function removeExpense(index) {
             if (currentUser) {
+                const removedAmount = users[currentUser].expenses[index].amount;
                 users[currentUser].expenses.splice(index, 1);
+                users[currentUser].budget += removedAmount; // Add back the removed amount to the budget
                 localStorage.setItem('users', JSON.stringify(users));
                 updateExpenseList();
                 updateTotalAmount();
+                updateBudget();
             }
         }
 
@@ -349,6 +443,7 @@
                     updateUI();
                     updateExpenseList();
                     updateTotalAmount();
+                    updateBudget();
                 }
             } else {
                 alert('Email not registered!');
@@ -366,6 +461,7 @@
                 document.body.classList.add('logged-in');
                 document.body.classList.remove('logged-out');
                 document.getElementById('user-name').textContent = `Welcome, ${users[currentUser].name}`;
+                loadProfile();
             } else {
                 document.body.classList.add('logged-out');
                 document.body.classList.remove('logged-in');
@@ -389,6 +485,54 @@
             document.querySelector('.login-form').style.display = 'none';
             document.querySelector('.forgot-password-form').style.display = 'block';
         }
+
+        function loadProfile() {
+            if (currentUser) {
+                document.getElementById('profile-name').value = users[currentUser].name;
+                document.getElementById('profile-email').value = currentUser;
+            }
+        }
+
+        function updateProfile(e) {
+            e.preventDefault();
+            const newName = document.getElementById('profile-name').value;
+            const newEmail = document.getElementById('profile-email').value;
+
+            if (currentUser && newName && newEmail) {
+                const userData = users[currentUser];
+                delete users[currentUser];
+
+                users[newEmail] = { ...userData, name: newName };
+                localStorage.setItem('users', JSON.stringify(users));
+                currentUser = newEmail;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                alert('Profile updated successfully!');
+                updateUI();
+            }
+        }
+
+        async function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const expenses = users[currentUser]?.expenses || [];
+
+            doc.text('Expense Tracker', 20, 20);
+            doc.text(`Name: ${users[currentUser]?.name}`, 20, 30);
+            doc.text(`Email: ${currentUser}`, 20, 40);
+            doc.text('Expenses:', 20, 50);
+
+            let y = 60;
+            expenses.forEach((expense, index) => {
+                doc.text(`${index + 1}. ${expense.name} - ₹${expense.amount.toFixed(2)} - ${expense.date}`, 20, y);
+                y += 10;
+            });
+
+            doc.text(`Total: ₹${expenses.reduce((acc, expense) => acc + expense.amount, 0).toFixed(2)}`, 20, y + 10);
+            doc.text(`Monthly Budget: ₹${users[currentUser]?.budget.toFixed(2)}`, 20, y + 20);
+
+            doc.save('expenses.pdf');
+        }
     </script>
 </body>
+
 </html>
